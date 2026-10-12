@@ -25,7 +25,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 HERE = Path(__file__).resolve().parent
-PUBLIC = HERE / 'public'
+PUBLIC = HERE / 'public' if (HERE / 'public' / 'index.html').exists() else HERE
 CACHE = HERE / '.cache'
 TZ = ZoneInfo('Europe/Lisbon')
 PORT = int(os.environ.get('PORT', '8765'))
