@@ -410,6 +410,68 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    def do_POST(self):
+        if urllib.parse.urlparse(self.path).path != '/api/google/transit':
+            return self.json_out({'error': 'Operação não encontrada.'}, 404)
+        key = os.environ.get('GOOGLE_MAPS_API_KEY', '').strip()
+        if not key:
+            return self.json_out({'error': 'Google Maps ainda não configurado no Render. Define GOOGLE_MAPS_API_KEY.'}, 503)
+        try:
+            size = int(self.headers.get('Content-Length', '0'))
+            if not 0 < size <= 4096:
+                return self.json_out({'error': 'Pedido inválido.'}, 400)
+            body = json.loads(self.rfile.read(size))
+            origin = str(body.get('origin', '')).strip()
+            destination = str(body.get('destination', '')).strip()
+            if not (3 <= len(origin) <= 180 and 3 <= len(destination) <= 180):
+                return self.json_out({'error': 'Indica origem e destino (3 a 180 caracteres).'}, 400)
+            request_body = json.dumps({
+                'origin': {'address': origin + ', Portugal'},
+                'destination': {'address': destination + ', Portugal'},
+                'travelMode': 'TRANSIT',
+                'languageCode': 'pt-PT',
+                'computeAlternativeRoutes': True,
+                'transitPreferences': {'allowedTravelModes': ['BUS']}
+            }).encode('utf-8')
+            req = urllib.request.Request(
+                'https://routes.googleapis.com/directions/v2:computeRoutes',
+                data=request_body,
+                headers={'Content-Type': 'application/json',
+                         'X-Goog-Api-Key': key,
+                         'X-Goog-FieldMask': 'routes.duration,routes.legs.steps.travelMode,routes.legs.steps.transitDetails'},
+                method='POST')
+            with urllib.request.urlopen(req, timeout=18) as resp:
+                result = json.loads(resp.read(1_000_000).decode('utf-8'))
+            journeys = []
+            for route in result.get('routes', [])[:4]:
+                legs = []
+                for leg in route.get('legs', []):
+                    for step in leg.get('steps', []):
+                        detail = step.get('transitDetails')
+                        if not detail:
+                            continue
+                        line = detail.get('transitLine', {})
+                        stops = detail.get('stopDetails', {})
+                        legs.append({
+                            'line': line.get('nameShort') or line.get('name') or '',
+                            'agency': ', '.join(x.get('name', '') for x in line.get('agencies', [])),
+                            'destination': detail.get('headsign', ''),
+                            'from': stops.get('departureStop', {}).get('name', ''),
+                            'to': stops.get('arrivalStop', {}).get('name', ''),
+                            'departure': stops.get('departureTime', ''),
+                            'arrival': stops.get('arrivalTime', ''),
+                            'stops': detail.get('stopCount', 0)
+                        })
+                journeys.append({'duration': route.get('duration', ''), 'segments': legs})
+            return self.json_out({'source': 'Google Maps Routes API', 'journeys': journeys})
+        except urllib.error.HTTPError as exc:
+            detail = exc.read(2048).decode('utf-8', errors='replace')
+            print('Google Routes API HTTP error:', exc.code, detail[:400])
+            return self.json_out({'error': 'Google Maps recusou o pedido (HTTP ' + str(exc.code) + '). Verifica chave, faturação e Routes API.'}, 502)
+        except Exception as exc:
+            print('Google Routes API error:', str(exc)[:300])
+            return self.json_out({'error': 'Não foi possível consultar os trajetos Google Maps.'}, 502)
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         q = urllib.parse.parse_qs(parsed.query)
