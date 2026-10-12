@@ -264,6 +264,22 @@ last_vehicle = {'timestamp': 0, 'data': None, 'error': ''}
 def load_gtfs():
     CACHE.mkdir(exist_ok=True)
     cached_file = CACHE / 'stcp-gtfs.zip'
+    # Optional independent source: upload a licensed GTFS ZIP into the repo,
+    # or configure STCP_GTFS_FILE to point to an absolute/relative ZIP path.
+    configured = os.environ.get('STCP_GTFS_FILE', '').strip()
+    local_candidates = ([Path(configured)] if configured else []) + [HERE / 'stcp-gtfs.zip', HERE / 'data' / 'stcp-gtfs.zip']
+    for local_file in local_candidates:
+        try:
+            if not local_file.is_file():
+                continue
+            payload = local_file.read_bytes()
+            gtfs = GTFS(payload)
+            with lock:
+                state.update(data=gtfs, status='pronto', error='', source='GTFS local: ' + local_file.name)
+            break
+        except Exception as exc:
+            with lock:
+                state['error'] = 'GTFS local inválido: ' + str(exc)[:180]
     if cached_file.exists():
         try:
             gtfs = GTFS(cached_file.read_bytes())
