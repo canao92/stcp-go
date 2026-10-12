@@ -87,6 +87,35 @@ def locate_gtfs():
                     return resource['url'], resource.get('name') or pack.get('title') or 'STCP GTFS'
             except Exception as exc:
                 errors.append(str(exc)[:90])
+    # Fallback: the public dataset page may remain available even when CKAN API endpoints return 404.
+    import html
+    page_url = 'https://opendata.porto.digital/dataset/' + GTFS_SLUG
+    try:
+        page = get_url(page_url, max_bytes=8_000_000).decode('utf-8', errors='replace')
+        page = html.unescape(page).replace('\\/', '/')
+        links = re.findall(r'(?:https?://[^\\s"\\'<>]+|/dataset/[^\\s"\\'<>]+|/resource/[^\\s"\\'<>]+)', page)
+        links = [urllib.parse.urljoin(page_url, u.split('?')[0]) for u in links
+                 if '/download/' in u and ('.zip' in u.lower() or 'gtfs' in u.lower())]
+        links = list(dict.fromkeys(links))
+        if links:
+            # Prefer the latest dated file name when one is exposed in the URL.
+            def date_score(u):
+                m = re.findall(r'(20\\d{2})[-_](\\d{2})[-_](\\d{2})|(\\d{2})[-_](\\d{2})[-_](20\\d{2})', u)
+                if not m:
+                    return ''
+                a = m[-1]
+                return ''.join(a[:3]) if a[0] else a[5] + a[4] + a[3]
+            links.sort(key=date_score, reverse=True)
+            for link in links:
+                try:
+                    data = get_url(link)
+                    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                        if any(n.lower().endswith('stops.txt') for n in archive.namelist()):
+                            return link, 'Portal de Dados Abertos do Porto (GTFS)'
+                except Exception as exc:
+                    errors.append(str(exc)[:90])
+    except Exception as exc:
+        errors.append(str(exc)[:90])
     raise RuntimeError('Não foi possível consultar o catálogo GTFS da STCP. ' + '; '.join(errors[-2:]))
 
 
