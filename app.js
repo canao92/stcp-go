@@ -26,6 +26,19 @@ const icons = {
 const icon = (name,size) => `<svg ${size?`width="${size}" height="${size}"`:''} viewBox="0 0 24 24" aria-hidden="true">${icons[name]||icons.pin}</svg>`;
 $$('[data-icon]').forEach(el => el.innerHTML=icon(el.dataset.icon));
 
+const googleSearchBtn = $('#google-search');
+if (googleSearchBtn) googleSearchBtn.addEventListener('click', async () => {
+ const origin=$('#google-origin').value.trim(),destination=$('#google-destination').value.trim(),out=$('#google-results');
+ if(!origin||!destination){out.innerHTML=empty('Preenche os dois locais','Indica a origem e o destino.');return}
+ googleSearchBtn.disabled=true;out.textContent='A pesquisar trajetos...';
+ try{
+  const response=await fetch('/api/google/transit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({origin,destination})});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.error||'Não foi possível pesquisar trajetos.');
+  out.innerHTML=(result.journeys||[]).length ? result.journeys.map((j,i)=>'<div class="result-card" style="display:block;padding:15px"><strong>Opção '+(i+1)+' · '+esc(j.duration||'Duração não disponível')+'</strong>'+((j.segments||[]).map(x=>'<p style="margin:10px 0"><strong>'+esc(x.line||'Transporte')+'</strong> · '+esc(x.destination||'')+'<br><small>'+esc(x.from||'')+' → '+esc(x.to||'')+'</small></p>').join('')||'<p>Sem detalhes de linhas disponíveis.</p>')+'</div>').join('') : empty('Sem trajetos encontrados','Experimenta outros locais ou confirma a cobertura no Google Maps.');
+ }catch(e){out.innerHTML=empty('Pesquisa indisponível',e.message,'route')}
+ finally{googleSearchBtn.disabled=false}
+});
 const data = {page:'home', ready:false, stop:null, stopLines:[], arrivals:[], chosenLine:'', route:null,
     variants:[], variantIndex:0, from:null, to:null, vehicles:[], vehicleId:'', map:null, mapMarkers:null,
     favourites:JSON.parse(localStorage.getItem('stcp_go_favourites')||'[]'), mapLoaded:false};
