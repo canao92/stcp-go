@@ -26,6 +26,13 @@ const icons = {
 const icon = (name,size) => `<svg ${size?`width="${size}" height="${size}"`:''} viewBox="0 0 24 24" aria-hidden="true">${icons[name]||icons.pin}</svg>`;
 $$('[data-icon]').forEach(el => el.innerHTML=icon(el.dataset.icon));
 
+const appleSearchBtn = $('#apple-search');
+if (appleSearchBtn) appleSearchBtn.addEventListener('click', () => {
+ const origin=$('#google-origin').value.trim(),destination=$('#google-destination').value.trim();
+ if (!origin || !destination) {toast('Indica a origem e o destino para abrir no Apple Maps.');return}
+ const params=new URLSearchParams({saddr:origin+', Porto, Portugal',daddr:destination+', Porto, Portugal',dirflg:'r'});
+ window.open('https://maps.apple.com/?'+params.toString(),'_blank','noopener,noreferrer');
+});
 const googleSearchBtn = $('#google-search');
 if (googleSearchBtn) googleSearchBtn.addEventListener('click', async () => {
  const origin=$('#google-origin').value.trim(),destination=$('#google-destination').value.trim(),out=$('#google-results');
