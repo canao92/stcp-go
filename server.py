@@ -93,14 +93,14 @@ def locate_gtfs():
     try:
         page = get_url(page_url, max_bytes=8_000_000).decode('utf-8', errors='replace')
         page = html.unescape(page).replace('\\/', '/')
-        links = re.findall(r'(?:https?://[^\\s"\\'<>]+|/dataset/[^\\s"\\'<>]+|/resource/[^\\s"\\'<>]+)', page)
+        links = re.findall(r"""(?:https?://[^\s"'<>]+|/dataset/[^\s"'<>]+|/resource/[^\s"'<>]+)""", page)
         links = [urllib.parse.urljoin(page_url, u.split('?')[0]) for u in links
                  if '/download/' in u and ('.zip' in u.lower() or 'gtfs' in u.lower())]
         links = list(dict.fromkeys(links))
         if links:
             # Prefer the latest dated file name when one is exposed in the URL.
             def date_score(u):
-                m = re.findall(r'(20\\d{2})[-_](\\d{2})[-_](\\d{2})|(\\d{2})[-_](\\d{2})[-_](20\\d{2})', u)
+                m = re.findall(r'(20\d{2})[-_](\d{2})[-_](\d{2})|(\d{2})[-_](\d{2})[-_](20\d{2})', u)
                 if not m:
                     return ''
                 a = m[-1]
