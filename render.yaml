@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: stcp-go
+    runtime: python
+    plan: free
+    buildCommand: "echo Aplicação Python sem dependências externas"
+    startCommand: python3 server.py
+    healthCheckPath: /api/status
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7

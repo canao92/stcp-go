@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="theme-color" content="#091b35"/>
+  <meta name="description" content="STCP GO: paragens, horários, trajetos e autocarros em tempo real no Porto."/>
+  <link rel="manifest" href="/manifest.webmanifest"/>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml"/>
+  <link rel="apple-touch-icon" href="/icon-180.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <link rel="stylesheet" href="/style.css"/>
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script defer src="/app.js"></script>
+  <title>STCP GO · Porto em movimento</title>
+</head>
+<body>
+  <div class="shell">
+    <aside class="desktop-side">
+      <div class="brand brand-side"><div class="brand-icon">↗</div><div><strong>STCP<span>GO</span></strong><small>PORTO EM MOVIMENTO</small></div></div>
+      <div class="side-heading">EXPLORAR</div>
+      <button class="side-tab active" data-page="home"><span data-icon="home"></span> Início</button>
+      <button class="side-tab" data-page="stops"><span data-icon="pin"></span> Paragens</button>
+      <button class="side-tab" data-page="routes"><span data-icon="bus"></span> Linhas</button>
+      <button class="side-tab" data-page="journey"><span data-icon="route"></span> Percursos</button>
+      <button class="side-tab" data-page="map"><span data-icon="map"></span> Mapa em direto</button>
+      <div class="sidebar-end"><span class="status-dot"></span> <span id="sidebar-status">A ligar às fontes...</span><p>Projeto independente. Dados STCP e Porto Digital.</p></div>
+    </aside>
+    <main class="main">
+      <header class="mobile-top"><div class="brand"><div class="brand-icon">↗</div><div><strong>STCP<span>GO</span></strong><small>PORTO EM MOVIMENTO</small></div></div><button id="refresh-btn" class="icon-btn" aria-label="Atualizar"><span data-icon="refresh"></span></button></header>
+      <div id="notify" class="notify hidden" role="status"></div>
+      <section id="page-home" class="page active">
+        <div class="hero">
+          <div class="hero-copy"><div class="hero-eyebrow"><span class="live-dot"></span> A tua cidade em movimento</div><h1>O Porto está<br/><em>à tua espera.</em></h1><p>Encontra o teu autocarro, descobre a próxima paragem e segue viagem sem complicações.</p></div>
+          <div class="hero-art" aria-hidden="true"><div class="hero-ring ring-1"></div><div class="hero-ring ring-2"></div><div class="hero-bus"><svg viewBox="0 0 176 176"><rect x="29" y="27" width="118" height="120" rx="28" fill="#f5fcff"/><rect x="42" y="40" width="92" height="56" rx="11" fill="#bcdcf0"/><path d="M88 40v56" stroke="#2b7ba6" stroke-width="5"/><rect x="42" y="109" width="92" height="10" rx="5" fill="#b5e6e7"/><circle cx="54" cy="128" r="8" fill="#ffc864"/><circle cx="122" cy="128" r="8" fill="#ffc864"/><rect x="48" y="140" width="22" height="12" rx="5" fill="#123a53"/><rect x="106" y="140" width="22" height="12" rx="5" fill="#123a53"/><rect x="69" y="24" width="38" height="11" rx="5" fill="#103757"/></svg></div><div class="floating-badge"><span>●</span> EM DIRETO</div></div>
+        </div>
+        <div id="home-status" class="source-bar"><span class="status-dot"></span><span id="status-text">A carregar horários oficiais...</span><button id="status-retry" class="link-btn hidden">Tentar novamente</button></div>
+        <div class="search-main"><span data-icon="search"></span><input id="home-search" autocomplete="off" placeholder="Pesquisar linha ou paragem..." aria-label="Pesquisar linha ou paragem"/><span class="shortcut">⌕</span></div>
+        <div id="home-results" class="search-suggestions hidden"></div>
+        <div class="section-heading"><h2>O que queres fazer?</h2><span>Viagens mais fáceis</span></div>
+        <div class="quick-grid">
+          <button class="quick-card" data-action="near"><span class="quick-icon mint"><span data-icon="near"></span></span><strong>Perto de mim</strong><small>Paragens à tua volta</small><span class="quick-arrow">↗</span></button>
+          <button class="quick-card" data-action="routes"><span class="quick-icon blue"><span data-icon="bus"></span></span><strong>Procurar linha</strong><small>Linhas e horários</small><span class="quick-arrow">↗</span></button>
+          <button class="quick-card" data-action="journey"><span class="quick-icon peach"><span data-icon="route"></span></span><strong>Planear viagem</strong><small>De onde até onde?</small><span class="quick-arrow">↗</span></button>
+          <button class="quick-card" data-action="map"><span class="quick-icon lilac"><span data-icon="radar"></span></span><strong>Autocarros no mapa</strong><small>Localização em direto</small><span class="quick-arrow">↗</span></button>
+        </div>
+        <div class="section-heading spaced"><h2>As tuas paragens</h2><button class="text-action" data-action="stops">Ver todas <span>→</span></button></div>
+        <div id="favourites-home" class="list-stack"><div class="empty-small">Ainda não tens paragens favoritas. Guarda uma paragem com ☆ para a encontrares aqui.</div></div>
+        <div class="info-panel"><span data-icon="spark"></span><div><strong>Chegadas em tempo real</strong><p>O mapa usa posições GPS quando a fonte está disponível. Para confirmar os minutos de espera em direto, abre a informação oficial da STCP na paragem escolhida.</p></div></div>
+      </section>
+
+      <section id="page-stops" class="page"><div class="page-heading"><span class="eyebrow">A TUA PRÓXIMA VIAGEM</span><h1>Paragens</h1><p>Pesquisa pelo nome ou pelo código da paragem.</p></div><div class="search-panel"><span data-icon="search"></span><input id="stop-search" placeholder="Ex.: Aliados, Casa da Música, CMP1" autocomplete="off" aria-label="Pesquisar paragem"/></div><button id="near-btn" class="secondary-btn full"><span data-icon="near"></span> Encontrar paragens perto de mim</button><div id="stop-results" class="list-stack results-space"><div class="empty-state"><span data-icon="pin"></span><strong>Onde vais apanhar o autocarro?</strong><p>Escreve o nome de uma paragem ou procura por GPS.</p></div></div></section>
+
+      <section id="page-routes" class="page"><div class="page-heading"><span class="eyebrow">ESCOLHE O TEU DESTINO</span><h1>Linhas STCP</h1><p>Consulta trajetos, sentidos e paragens de cada linha.</p></div><div class="search-panel"><span data-icon="search"></span><input id="route-search" placeholder="Pesquisar linha: 200, 500, 1M..." autocomplete="off" aria-label="Pesquisar linha"/></div><div id="route-results" class="list-stack results-space"><div class="loading">A carregar a lista de linhas...</div></div></section>
+
+      <section id="page-journey" class="page"><div class="page-heading"><span class="eyebrow">DO PONTO A AO PONTO B</span><h1>Planear percurso</h1><p>Encontra viagens diretas ou com uma mudança de autocarro.</p></div>
+        <div class="journey-form"><div class="journey-track"><span></span><i></i><b></b></div><div class="journey-fields"><div class="journey-input-wrap"><label for="journey-from">PARTIDA</label><input id="journey-from" placeholder="Nome ou código da paragem" autocomplete="off"/><div id="journey-from-results" class="autocomplete hidden"></div></div><div class="journey-input-wrap"><label for="journey-to">DESTINO</label><input id="journey-to" placeholder="Para onde vais?" autocomplete="off"/><div id="journey-to-results" class="autocomplete hidden"></div></div></div><button id="swap-btn" class="swap-btn" aria-label="Trocar partida e destino"><span data-icon="swap"></span></button></div>
+        <button id="journey-go" class="primary-btn full"><span data-icon="route"></span> Encontrar percurso <span>→</span></button><div id="journey-results" class="list-stack results-space"></div><p class="disclaimer">Os percursos são sugestões com base nas sequências de paragens do GTFS. Confirma os tempos de espera e eventuais alterações de serviço antes de viajar.</p>
+      </section>
+
+      <section id="page-map" class="page"><div class="page-heading map-heading"><span class="eyebrow">A CIDADE AGORA</span><h1>Mapa em direto</h1><p>Autocarros STCP com localização GPS disponibilizada publicamente.</p></div><div class="map-toolbar"><div class="status-pill"><span class="live-dot"></span><span id="gps-status">A consultar os autocarros...</span></div><button id="map-refresh" class="tertiary-btn"><span data-icon="refresh"></span> Atualizar</button></div><div id="map" class="map-area"><div class="map-fallback">A carregar mapa...</div></div><div class="map-footer"><p><strong>Sobre a localização:</strong> posições devolvidas pela plataforma Porto Digital. A cobertura e o intervalo de atualização dependem da fonte. Não representam uma promessa de hora de chegada.</p><button id="maps-open" class="link-btn">Abrir transportes no Google Maps ↗</button></div><div id="vehicle-card" class="vehicle-card hidden"></div></section>
+
+      <section id="page-stop-detail" class="page"><button id="stop-back" class="back-link"><span data-icon="back"></span> Voltar às paragens</button><div id="stop-detail"></div></section>
+      <section id="page-route-detail" class="page"><button id="route-back" class="back-link"><span data-icon="back"></span> Voltar às linhas</button><div id="route-detail"></div></section>
+      <footer class="footer">STCP GO é um projeto independente, não oficial. Fontes: STCP, Dados Abertos do Porto e Porto Digital.</footer>
+    </main>
+  </div>
+  <nav class="bottom-nav" aria-label="Navegação"><button class="bottom-tab active" data-page="home"><span data-icon="home"></span><small>Início</small></button><button class="bottom-tab" data-page="stops"><span data-icon="pin"></span><small>Paragens</small></button><button class="bottom-tab" data-page="routes"><span data-icon="bus"></span><small>Linhas</small></button><button class="bottom-tab" data-page="journey"><span data-icon="route"></span><small>Percursos</small></button><button class="bottom-tab" data-page="map"><span data-icon="map"></span><small>Mapa</small></button></nav>
+</body>
+</html>
